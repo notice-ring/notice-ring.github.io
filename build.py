@@ -31,6 +31,20 @@ INTERFACE_COPY = {
     "en": {"skip": "Skip to content", "nav_label": "Main navigation", "language_label": "Language", "email": "Email", "signature": "Jihwan Gong · Seoul"},
     "ko": {"skip": "본문으로 건너뛰기", "nav_label": "주 메뉴", "language_label": "언어 선택", "email": "이메일", "signature": "공지환 · 서울"},
 }
+NOTE_CATEGORIES = {
+    "ai-native": {
+        "en": ("AI Native", "Experiments in working with AI and reflections on what to delegate, verify, and change next."),
+        "ko": ("AI Native", "AI와 일하는 방식을 바꿔 보며, AI에 맡긴 일과 직접 확인한 부분, 다음에 바꿀 점을 기록합니다."),
+    },
+    "physical-ai-study": {
+        "en": ("Physical AI Study", "Questions and observations from studying how robots learn, reason, and act in the physical world."),
+        "ko": ("Physical AI 공부", "로봇이 현실에서 배우고 추론하고 행동하는 과정을 공부하며 생긴 질문을 정리합니다."),
+    },
+    "build-log": {
+        "en": ("Build Log", "What I tried, where I got stuck, and what I changed while building and testing projects."),
+        "ko": ("제작 기록", "프로젝트를 만들고 실험하면서 시도한 것, 막힌 점, 바꾼 점을 기록합니다."),
+    },
+}
 
 
 def read_notes(path):
@@ -59,8 +73,9 @@ def read_notes(path):
             raise ValueError(f"{slug}: language must be en or ko")
         if not isinstance(note.get("draft", False), bool):
             raise ValueError(f"{slug}: draft must be a boolean")
-        if note.get("category") is not None and not isinstance(note["category"], str):
-            raise ValueError(f"{slug}: category must be text or null")
+        category = note.get("category")
+        if category is not None and (not isinstance(category, str) or category not in NOTE_CATEGORIES):
+            raise ValueError(f"{slug}: category must be one of {', '.join(NOTE_CATEGORIES)} or null")
     return sorted((n for n in notes if not n.get("draft", False)), key=lambda n: n["date"], reverse=True)
 
 
@@ -84,6 +99,27 @@ def render_note_list(notes, language="en"):
             f'<p>{escape(n["summary"])}</p></div></li>'
         )
     return '<ul class="note-list">' + "\n".join(rows) + "</ul>"
+
+
+def render_note_categories(notes, language):
+    sections = []
+    for category, translations in NOTE_CATEGORIES.items():
+        label, description = translations[language]
+        entries = [note for note in notes if note.get("category") == category]
+        listing = render_note_list(entries, language) if entries else ""
+        sections.append(
+            f'<section class="note-category" id="{category}" aria-labelledby="{category}-title">'
+            f'<h2 id="{category}-title">{escape(label)}</h2>'
+            f'<p>{escape(description)}</p>{listing}</section>'
+        )
+    content = '<div class="note-categories">\n' + "\n".join(sections) + '\n</div>'
+    other = [note for note in notes if note.get("category") is None]
+    if other:
+        label = "분류되지 않은 글" if language == "ko" else "Uncategorized notes"
+        content += f'\n<section class="section"><h2>{label}</h2>{render_note_list(other, language)}</section>'
+    if not notes:
+        content += "\n" + render_note_list([], language)
+    return content
 
 
 def localized_path(page, language):
@@ -158,18 +194,25 @@ def build(output=None):
             path = localized_path(page, language)
             content = (templates / path).read_text(encoding="utf-8")
             if page == "notes.html":
-                content = Template(content).substitute(note_list=render_note_list(notes, language))
+                content = Template(content).substitute(note_categories=render_note_categories(notes, language))
             title = f"{name} · Physical AI" if page == "index.html" else f"{label} · {name}"
             pages[path] = render_page(layout, path, content, title, description, language=language)
     for n in notes:
         language = n.get("language", "en")
         path = f'note/{n["slug"]}.html'
+        note_list_url = "../" + localized_path("notes.html", language)
+        category_link = ""
+        if n.get("category"):
+            category = n["category"]
+            label, _ = NOTE_CATEGORIES[category][language]
+            category_link = f'<a href="{note_list_url}#{category}">{escape(label)}</a> <span aria-hidden="true">/</span> '
         content = note_template.substitute(
             title=escape(n["title"]),
             summary=escape(n["summary"], quote=True), date=n["date"],
             display_date=display_date(n["date"], language),
             note_label=PAGE_COPY[language]["notes.html"][0],
-            note_list_url="../" + localized_path("notes.html", language),
+            note_list_url=note_list_url,
+            category_link=category_link,
             body="\n".join(f"<p>{escape(p)}</p>" for p in n["body"]),
         )
         pages[path] = render_page(layout, path, content, f'{n["title"]} · Jihwan Gong', n["summary"], language=language)

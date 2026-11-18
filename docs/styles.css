@@ -192,6 +192,18 @@ dd { margin-top: .25rem; color: var(--muted); font-size: .9rem; }
 .note-list li { padding-block: var(--space-4); border-top: 1px solid var(--line); }
 .note-list time { display: block; margin-bottom: .25rem; }
 .note-list p { margin-top: .25rem; color: var(--muted); font-size: .9rem; }
+.note-categories { display: grid; gap: var(--space-4); margin-top: var(--space-8); }
+.note-category {
+  min-width: 0;
+  padding: var(--space-5);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.note-category h2 { font-size: 1.4rem; }
+.note-category > p { margin-top: var(--space-2); color: var(--muted); font-size: .9375rem; }
+.note-category a { overflow-wrap: anywhere; }
+.note-category .note-list li:last-child { padding-bottom: 0; }
 .note-page { padding-block: var(--space-12); max-width: 740px; }
 .note-page h1 { font-size: clamp(2.2rem, 6vw, 3.5rem); line-height: 1.15; margin-block: var(--space-3) var(--space-4); overflow-wrap: anywhere; }
 .note-summary { color: var(--muted); font-size: 1.1rem; }

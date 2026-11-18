@@ -24,14 +24,15 @@ class NotePublishingTests(unittest.TestCase):
         return build.read_notes(self.content)
 
     def test_drafts_hidden_categories_optional_and_latest_first(self):
-        earlier = dict(self.note, slug="earlier", date="2026-11-01", category="Learning")
+        earlier = dict(self.note, slug="earlier", date="2026-11-01", category="physical-ai-study")
         draft = dict(self.note, slug="draft", draft=True)
         result = self.load([earlier, draft, self.note])
         self.assertEqual([n["slug"] for n in result], ["first-note", "earlier"])
 
-    def test_rejects_path_traversal_duplicates_and_invalid_dates(self):
+    def test_rejects_invalid_note_data(self):
         for notes in ([dict(self.note, slug="../../private")], [self.note, self.note],
-                      [dict(self.note, date="2026-02-30")], [dict(self.note, draft="false")]):
+                      [dict(self.note, date="2026-02-30")], [dict(self.note, draft="false")],
+                      [dict(self.note, category="physical-ai-typo")]):
             with self.subTest(notes=notes), self.assertRaises(ValueError):
                 self.load(notes)
 
@@ -52,6 +53,27 @@ class NotePublishingTests(unittest.TestCase):
         with patch.object(build, "read_notes", return_value=[]):
             build.build(output)
         self.assertFalse((output / "note/first-note.html").exists())
+
+    def test_categories_group_published_notes_in_both_languages(self):
+        output = self.root / "dist"
+        entries = self.load([
+            dict(self.note, category="ai-native"),
+            dict(self.note, slug="build-note", category="build-log"),
+            dict(self.note, slug="unpublished", category="physical-ai-study", draft=True),
+        ])
+        with patch.object(build, "read_notes", return_value=entries):
+            build.build(output)
+        for path in ("notes.html", "kr/notes.html"):
+            with self.subTest(path=path):
+                page = (output / path).read_text()
+                for category, entry in (("ai-native", "first-note"), ("build-log", "build-note")):
+                    section = page.split(f'id="{category}"', 1)[1].split("</section>", 1)[0]
+                    self.assertIn(f"note/{entry}.html", section)
+                    self.assertEqual(page.count(f"note/{entry}.html"), 1)
+                self.assertIn('id="physical-ai-study"', page)
+                self.assertNotIn("unpublished.html", page)
+        self.assertIn('../kr/notes.html#ai-native', (output / "note/first-note.html").read_text())
+        self.assertFalse((output / "note/unpublished.html").exists())
 
     def test_language_switch_links_to_the_same_section(self):
         output = self.root / "dist"

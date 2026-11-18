@@ -58,14 +58,14 @@ GitHub Pages가 `docs/`의 변경을 자동 배포합니다. 기본 로컬 미�
     "summary": "목록에 보일 짧은 소개",
     "body": ["첫 번째 문단", "두 번째 문단"],
     "draft": true,
-    "category": null
+    "category": "ai-native"
   }
 ]
 ```
 
 `draft: true`인 글은 목록과 페이지 모두 생성하지 않습니다. 공개할 때 `false`로 바꿉니다. 두 언어의 목록에 최신 날짜순으로 표시되며, 개별 글은 원문으로 제공됩니다. 개별 주소는 `note/my-first-note.html`입니다. 삭제하거나 초안으로 돌린 글의 기존 출력 페이지도 다음 빌드에서 제거됩니다. `language`는 `en` 또는 `ko`이며 생략하면 `en`입니다. 제목과 본문은 HTML이 아닌 일반 텍스트입니다.
 
-`category`는 생략하거나 `null`로 둘 수 있고, 현재 화면에는 표시하지 않습니다. 분류가 정해지면 데이터 구조를 바꾸지 않고 목록 필터를 추가할 수 있습니다. 본문에 코드 블록이나 그림이 자주 필요해질 때 Markdown 지원을 추가하면 됩니다.
+`category`에는 `ai-native` (AI Native), `physical-ai-study` (Physical AI Study), `build-log` (Build Log) 중 하나를 넣습니다. 생략하거나 `null`을 넣으면 분류되지 않은 글 목록에 표시됩니다.
 
 ## 공개 범위
 
