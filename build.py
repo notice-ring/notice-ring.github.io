@@ -7,16 +7,30 @@ import shutil
 from datetime import date
 from html import escape
 from pathlib import Path
+from posixpath import dirname, relpath
 from string import Template
 from textwrap import indent
 
 ROOT = Path(__file__).resolve().parent
 SITE_URL = "https://notice-ring.github.io/"
-SECTIONS = (
-    ("research.html", "Research", "DiVE at CoRL 2026 and Jihwan Gong's research experience."),
-    ("community.html", "Community", "Robotics education and teaching at SHAPE, Seoul National University."),
-    ("notes.html", "Note", "Jihwan Gong's notes on research, building robots, and working alongside AI."),
-)
+PAGE_COPY = {
+    "en": {
+        "index.html": ("Home", "Jihwan Gong, SNU ECE undergraduate interested in Physical AI, including human-like learning, reasoning, and action, as well as Agentic Robotics."),
+        "research.html": ("Research", "DiVE at CoRL 2026 and Jihwan Gong's research experience."),
+        "community.html": ("Community", "Robotics education and teaching at SHAPE, Seoul National University."),
+        "notes.html": ("Note", "Jihwan Gong's notes on research, building robots, and working alongside AI."),
+    },
+    "ko": {
+        "index.html": ("홈", "Physical AI와 로봇의 학습·추론·행동을 공부하는 서울대학교 전기·정보공학부 공지환입니다."),
+        "research.html": ("연구", "공지환의 CoRL 2026 논문 DiVE와 연구 경험입니다."),
+        "community.html": ("활동", "서울대학교 동아리 SHAPE에서의 로봇 교육 활동입니다."),
+        "notes.html": ("노트", "연구와 로봇 개발, AI와 함께 일하며 배운 점을 기록합니다."),
+    },
+}
+INTERFACE_COPY = {
+    "en": {"skip": "Skip to content", "nav_label": "Main navigation", "language_label": "Language", "email": "Email", "signature": "Jihwan Gong · Seoul"},
+    "ko": {"skip": "본문으로 건너뛰기", "nav_label": "주 메뉴", "language_label": "언어 선택", "email": "이메일", "signature": "공지환 · 서울"},
+}
 
 
 def read_notes(path):
@@ -50,46 +64,80 @@ def read_notes(path):
     return sorted((n for n in notes if not n.get("draft", False)), key=lambda n: n["date"], reverse=True)
 
 
-def display_date(value):
-    return date.fromisoformat(value).strftime("%b %d, %Y")
+def display_date(value, language):
+    day = date.fromisoformat(value)
+    if language == "ko":
+        return f"{day.year}년 {day.month}월 {day.day}일"
+    return day.strftime("%b %d, %Y")
 
 
-def render_note_list(notes):
+def render_note_list(notes, language="en"):
     if not notes:
-        return '<p class="empty-note">No notes published yet.</p>'
+        message = "아직 공개된 글이 없습니다." if language == "ko" else "No notes published yet."
+        return f'<p class="empty-note">{message}</p>'
     rows = []
+    root = "../" if language == "ko" else ""
     for n in notes:
         rows.append(
-            f'<li lang="{n.get("language", "en")}"><time class="date" datetime="{n["date"]}">{display_date(n["date"])}</time>'
-            f'<h3><a href="note/{n["slug"]}.html">{escape(n["title"])}</a></h3>'
-            f'<p>{escape(n["summary"])}</p></li>'
+            f'<li><time class="date" datetime="{n["date"]}">{display_date(n["date"], language)}</time>'
+            f'<div lang="{n.get("language", "en")}"><h3><a href="{root}note/{n["slug"]}.html">{escape(n["title"])}</a></h3>'
+            f'<p>{escape(n["summary"])}</p></div></li>'
         )
     return '<ul class="note-list">' + "\n".join(rows) + "</ul>"
 
 
-def render_page(layout, path, content, title, description, *, language="en"):
+def localized_path(page, language):
+    return f"kr/{page}" if language == "ko" else page
+
+
+def public_url(path):
+    if path in ("index.html", "kr/index.html"):
+        path = path.removesuffix("index.html")
+    return SITE_URL + path
+
+
+def render_page(layout, path, content, title, description, *, language):
     is_article = path.startswith("note/")
-    is_home = path == "index.html"
-    root = "../" if is_article else ""
+    is_home = path == localized_path("index.html", language)
+    root = "../" if "/" in path else ""
+    note_page = localized_path("notes.html", language)
     navigation = []
-    for href, label, _ in SECTIONS:
+    for page, (label, _) in PAGE_COPY[language].items():
+        target = localized_path(page, language)
+        href = relpath(target, dirname(path) or ".")
         current = ""
-        if href == path:
+        if target == path:
             current = ' aria-current="page"'
-        elif is_article and href == "notes.html":
+        elif is_article and target == note_page:
             current = ' aria-current="location"'
-        navigation.append(f'      <a href="{root}{href}"{current}>{label}</a>')
+        navigation.append(f'      <a href="{href}"{current}>{label}</a>')
+
+    equivalent_page = "notes.html" if is_article else path.rsplit("/", 1)[-1]
+    language_links = []
+    alternates = []
+    for locale, label, name in (("en", "EN", "English"), ("ko", "KR", "한국어")):
+        target = localized_path(equivalent_page, locale)
+        if locale == language:
+            language_links.append(f'<span lang="{locale}" aria-label="{name}" aria-current="true">{label}</span>')
+        else:
+            href = relpath(target, dirname(path) or ".")
+            language_links.append(f'<a href="{href}" hreflang="{locale}" lang="{locale}" aria-label="{name}">{label}</a>')
+        if not is_article:
+            alternates.append(f'  <link rel="alternate" hreflang="{locale}" href="{public_url(target)}">')
     return layout.substitute(
         language=language,
         root=root,
-        canonical=SITE_URL + ("" if is_home else path),
+        canonical=public_url(path),
+        alternates="\n".join(alternates),
         title=escape(title, quote=True),
         description=escape(description, quote=True),
         page_type="article" if is_article else "website",
-        home_current=' aria-current="page"' if is_home else "",
+        home=relpath(localized_path("index.html", language), dirname(path) or "."),
         navigation="\n".join(navigation),
+        language_switch='<span aria-hidden="true">/</span>'.join(language_links),
         main_class="note-page" if is_article else "home" if is_home else "page",
         content=indent(content.rstrip(), "    "),
+        **INTERFACE_COPY[language],
     )
 
 
@@ -103,25 +151,28 @@ def build(output=None):
     layout = Template((templates / "layout.html").read_text(encoding="utf-8"))
     note_template = Template((templates / "note.html").read_text(encoding="utf-8"))
     # Render before touching output so invalid content never overwrites a working build.
-    pages = {"index.html": render_page(
-        layout, "index.html", (templates / "index.html").read_text(encoding="utf-8"),
-        "Jihwan Gong · Physical AI",
-        "Jihwan Gong, SNU ECE undergraduate interested in Physical AI, including human-like learning, reasoning, and action, as well as Agentic Robotics.",
-    )}
-    for path, title, description in SECTIONS:
-        content = (templates / path).read_text(encoding="utf-8")
-        if path == "notes.html":
-            content = Template(content).substitute(note_list=render_note_list(notes))
-        pages[path] = render_page(layout, path, content, f"{title} · Jihwan Gong", description)
+    pages = {}
+    for language, copies in PAGE_COPY.items():
+        name = "공지환" if language == "ko" else "Jihwan Gong"
+        for page, (label, description) in copies.items():
+            path = localized_path(page, language)
+            content = (templates / path).read_text(encoding="utf-8")
+            if page == "notes.html":
+                content = Template(content).substitute(note_list=render_note_list(notes, language))
+            title = f"{name} · Physical AI" if page == "index.html" else f"{label} · {name}"
+            pages[path] = render_page(layout, path, content, title, description, language=language)
     for n in notes:
+        language = n.get("language", "en")
         path = f'note/{n["slug"]}.html'
         content = note_template.substitute(
             title=escape(n["title"]),
             summary=escape(n["summary"], quote=True), date=n["date"],
-            display_date=display_date(n["date"]),
+            display_date=display_date(n["date"], language),
+            note_label=PAGE_COPY[language]["notes.html"][0],
+            note_list_url="../" + localized_path("notes.html", language),
             body="\n".join(f"<p>{escape(p)}</p>" for p in n["body"]),
         )
-        pages[path] = render_page(layout, path, content, f'{n["title"]} · Jihwan Gong', n["summary"], language=n.get("language", "en"))
+        pages[path] = render_page(layout, path, content, f'{n["title"]} · Jihwan Gong', n["summary"], language=language)
     output.mkdir(parents=True, exist_ok=True)
     shutil.copytree(ROOT / "static", output, dirs_exist_ok=True)
     # Only remove generated Note pages; drafts and removed articles must disappear.

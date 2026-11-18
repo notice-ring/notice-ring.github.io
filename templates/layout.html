@@ -7,6 +7,7 @@
   <meta name="theme-color" content="#f9f9fc">
   <title>$title</title>
   <link rel="canonical" href="$canonical">
+$alternates
   <meta property="og:title" content="$title">
   <meta property="og:description" content="$description">
   <meta property="og:url" content="$canonical">
@@ -15,17 +16,18 @@
   <link rel="stylesheet" href="${root}styles.css">
 </head>
 <body>
-  <a class="skip-link" href="#main">Skip to content</a>
+  <a class="skip-link" href="#main">$skip</a>
   <header class="site-header wrap">
-    <a class="wordmark" href="${root}index.html" aria-label="Jihwan Gong, home"$home_current>JG<span aria-hidden="true">.</span></a>
-    <nav aria-label="Main navigation">
+    <a class="wordmark" href="$home">JG<span aria-hidden="true">.</span></a>
+    <nav class="site-navigation" aria-label="$nav_label">
 $navigation
       <a href="${root}assets/Jihwan_Gong_CV.pdf">CV <span aria-hidden="true">↗</span></a>
     </nav>
+    <nav class="language-switch" aria-label="$language_label">$language_switch</nav>
   </header>
   <main id="main" class="wrap $main_class">
 $content
   </main>
-  <footer class="site-footer wrap"><span>Jihwan Gong · Seoul</span><a href="mailto:gjh020717@snu.ac.kr">Email <span aria-hidden="true">↗</span></a></footer>
+  <footer class="site-footer wrap"><span>$signature</span><a href="mailto:gjh020717@snu.ac.kr">$email <span aria-hidden="true">↗</span></a></footer>
 </body>
 </html>

@@ -46,10 +46,27 @@ class NotePublishingTests(unittest.TestCase):
         self.assertIn("&lt;script&gt;", page)
         self.assertIn('lang="ko"', page)
         self.assertIn("두 번째 문단", page)
+        self.assertIn('href="../kr/notes.html"', page)
+        self.assertIn('href="../note/first-note.html"', (output / "kr/notes.html").read_text())
         self.assertTrue((output / "assets/Jihwan_Gong_CV.pdf").is_file())
         with patch.object(build, "read_notes", return_value=[]):
             build.build(output)
         self.assertFalse((output / "note/first-note.html").exists())
+
+    def test_language_switch_links_to_the_same_section(self):
+        output = self.root / "dist"
+        with patch.object(build, "read_notes", return_value=[]):
+            build.build(output)
+        for section in ("index.html", "research.html", "community.html", "notes.html"):
+            with self.subTest(section=section):
+                english = (output / section).read_text()
+                korean = (output / "kr" / section).read_text()
+                self.assertIn('<html lang="en">', english)
+                self.assertIn('<html lang="ko">', korean)
+                self.assertIn(f'href="kr/{section}" hreflang="ko"', english)
+                self.assertIn(f'href="../{section}" hreflang="en"', korean)
+                self.assertIn(f'href="{section}" aria-current="page"', english)
+                self.assertIn(f'href="{section}" aria-current="page"', korean)
 
 
 if __name__ == "__main__":
