@@ -33,17 +33,19 @@ GitHub Pages가 `docs/`의 변경을 자동 배포합니다. 기본 로컬 미�
 
 ## 수정 위치
 
-- 소개, 연구, 동아리: `templates/index.html`
+- 소개: `templates/index.html`
+- 메뉴와 공통 레이아웃: `templates/layout.html`, `build.py`
+- 연구·동아리: `templates/research.html`, `templates/community.html`
 - 프로필 사진: `static/assets/jihwan-gong.png`
 - 디자인과 반응형 레이아웃: `static/styles.css`
 - CV: `static/assets/Jihwan_Gong_CV.pdf`
-- Note 목록과 본문: `content/notes.json`
+- Note 목록과 본문: `content/notes.json` (`notes.html` 목록과 `note/<slug>.html` 글로 생성)
 
 수정 후 `python3 build.py`를 실행합니다. `dist/`를 직접 고치면 다음 빌드 때 덮어씁니다.
 
 ## Note 추가
 
-현재는 Note 한 섹션만 노출하며 게시물은 비어 있습니다. `content/notes.json`의 배열에 아래와 같은 객체를 추가합니다. 예시는 설명용이며 실제 게시물로 넣지 않았습니다.
+현재는 Note 목록 페이지에 공개된 게시물이 없습니다. `content/notes.json`의 배열에 아래와 같은 객체를 추가합니다. 예시는 설명용이며 실제 게시물로 넣지 않았습니다.
 
 ```json
 [
